@@ -20,6 +20,7 @@
 #include "cuci.h"
 
 extern char ** restartargv;
+extern pthread_mutex_t sMutex;
 
 
 static const struct {
@@ -706,6 +707,7 @@ static void thread_agentUpgrade(void * args)
 			restart();
 		}
 		config->upgrade_lock = 0;
+		pthread_mutex_unlock(&sMutex);
 	}
 }
 
@@ -743,6 +745,7 @@ _agentUpgrade(cJSON *root, s_config *config, char *http_packet)
 	strcpy(ua->md5, cJSON_GetObjectItem(valueSet, "md5")->valuestring);
 	strcpy(ua->id, transaction_id->valuestring);
 	config->upgrade_lock = 1;
+	pthread_mutex_lock(&sMutex);
 	result = pthread_create(&tid_agent, NULL, (void *)thread_agentUpgrade, (void *)ua);
 	if (result != 0) {
 		debug(LOG_ERR, "FATAL: Failed to create a new thread (thread_agentUpgrade");
@@ -815,6 +818,7 @@ static void thread_imageUpgrade(void * args)
 	}
 	
 	config->upgrade_lock = 0;
+	pthread_mutex_unlock(&sMutex);
 	
 }
 
@@ -851,6 +855,7 @@ _imageUpgrade(cJSON *root, s_config *config, char *http_packet)
 	strcpy(ua->md5, cJSON_GetObjectItem(valueSet, "md5")->valuestring);
 	strcpy(ua->id, transaction_id->valuestring);
 	config->upgrade_lock = 1;
+	pthread_mutex_lock(&sMutex);
 	result = pthread_create(&tid_image, NULL, (void *)thread_imageUpgrade, (void *)ua);
 	if (result != 0) {
 		debug(LOG_ERR, "FATAL: Failed to create a new thread (thread_imageUpgrade");

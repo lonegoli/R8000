@@ -61,6 +61,7 @@ typedef struct {
     int log_syslog;
 	int syslog_facility;
 	char *gw_mac;
+	char *gw_wan_mac;
 	char *gw_interface;
 	char *gw_address;
 	int request_timeout;

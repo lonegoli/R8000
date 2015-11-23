@@ -49,6 +49,8 @@ static pthread_t tid_push_clients = 0;
 
 pthread_mutex_t hMutex = PTHREAD_MUTEX_INITIALIZER; 
 
+pthread_mutex_t sMutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 time_t started_time = 0;
 
@@ -331,7 +333,7 @@ static int
 register_doit(int sockfd)
 {
 	int result;
-	char ip[16], mac_addr[18], model[32], version[32], duration[32];
+	char ip[16], mac_addr[18], model[32], version[32], duration[32], maclist[36];
 	s_config *config = config_get_config();
 	char request[MAX_BUF];
 	char response[MAX_BUF];
@@ -353,7 +355,8 @@ register_doit(int sockfd)
 
 		cJSON_AddStringToObject(valueSetObj, "vendor", "Netgear");
 		//read_wan_mac_addr(mac_addr, sizeof(mac_addr)/sizeof(mac_addr[0]));
-		cJSON_AddStringToObject(valueSetObj, "mac_addr", config->gw_mac);
+		snprintf(maclist, 36, "%s,%s", config->gw_mac, config->gw_wan_mac);
+		cJSON_AddStringToObject(valueSetObj, "mac_addr", maclist);
 		
 		sprintf(duration, "%d", read_uptime());
 		cJSON_AddStringToObject(valueSetObj,"duration", duration);
@@ -437,7 +440,9 @@ heartbeat(s_config *config)
 		debug(LOG_INFO,"Send a request to server:%s", request);
 		pthread_mutex_lock(&hMutex);
 		safe_encrypt_http_send(config->httpfd, request, strlen(request), 0);  
+		pthread_mutex_lock(&sMutex);
 		ret = safe_decrypt_http_read(config->httpfd, 30, response);
+		pthread_mutex_unlock(&sMutex);
 		pthread_mutex_unlock(&hMutex);
 			
 		
@@ -474,9 +479,11 @@ heartbeat(s_config *config)
 						break;
 */
 					case oImageUpgrade:
-						_imageUpgrade(json, config, response);
+						_imageUpgrade(json, config, request);
+						break;
+						
 					case oAgentUpgrade:
-						_agentUpgrade(json, config, response);
+						_agentUpgrade(json, config, request);
 						break;
 						
 					case oBadOption:
@@ -537,6 +544,17 @@ main_loop(void)
 			exit(1);
 		}
 		debug(LOG_DEBUG, "Find the MAC address %s", config->gw_mac);
+	}
+
+	if (!config->gw_wan_mac) {
+		char mac[18];
+    	debug(LOG_INFO, "Try to find WAN MAC address");
+	 	read_wan_mac_addr(mac, sizeof(mac)/sizeof(mac[0]));
+    	if ((config->gw_wan_mac = safe_strdup(mac)) == NULL) {
+			debug(LOG_ERR, "Can not get WAN MAC address, exiting...");
+			exit(1);
+		}
+		debug(LOG_DEBUG, "Find the WAN MAC address %s", config->gw_wan_mac);
 	}
 	/*
 	if (!config->sn) {

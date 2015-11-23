@@ -122,6 +122,7 @@ config_init(void)
 	config.log_syslog = DEFAULT_LOG_SYSLOG;// «∑Ò–¥log µΩsyslog÷–
 	config.gw_interface = "brtrunk";
 	config.gw_mac = NULL;
+	config.gw_wan_mac = NULL;
 	config.gw_address = NULL;
 	config.request_timeout = 10;
 	config.request_retry = 3;

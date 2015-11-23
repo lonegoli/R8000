@@ -194,7 +194,7 @@ update_dns(void)
 	struct	timespec	timeout;
 	char iplist[1024];
 	char cmd[128];
-	char *domainlist[]={"connect.facebook.net","connect.facebook.com","s-static.ak.facebook.com","static.xx.fbcdn.net","static.ak.facebook.com","fbstatic-a.akamaihd.net","m.facebook.com","graph.facebook.com"};
+	char *domainlist[]={"connect.facebook.net","connect.facebook.com","s-static.ak.facebook.com","static.xx.fbcdn.net","static.ak.facebook.com","fbstatic-a.akamaihd.net","m.facebook.com","graph.facebook.com","fbcdn-profile-a.akamaihd.net"};
 	int i,ret;
 	char ipbuf[16];
 	memset(iplist, 0, sizeof(iplist)/sizeof(iplist[0]));
