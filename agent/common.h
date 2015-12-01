@@ -1,7 +1,7 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
-#define VERSION "V1.0.29"
+#define VERSION "V1.0.30"
 #define SWVERSION "V1.0.0.1"
 
 #define MAX_BUF 4096
@@ -32,6 +32,7 @@
 #define AGENTUPGRADE "agentUpgrade"
 #define IMAGEUPGRADE "imageUpgrade"
 #define IMAGEUPGRADESTATUS "imageUpgradeStatus"
+#define REBOOT "reboot"
 
 #define AGENTUPGRADESTATUS "agentUpgradeStatus"
 

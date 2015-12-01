@@ -20,6 +20,9 @@
 #include "cuci.h"
 
 extern char ** restartargv;
+
+extern pthread_mutex_t hMutex;
+
 extern pthread_mutex_t sMutex;
 
 
@@ -667,13 +670,13 @@ static void thread_agentUpgrade(void * args)
 		system("rm -rf /tmp/download/EliteAgent");
 		if(download_file(file_name, DOWNAGENTDIR)) {
 			debug(LOG_ERR,"Download file failed.");
-			create_http_json(valueSetObj, id, INFORM, AGENTUPGRADESTATUS, "failed", "6", "Failed to download agent file", config->gw_mac, request);
+			create_http_json(valueSetObj, id, INFORM, AGENTUPGRADESTATUS, "failed", "6", "Failed to download agent file", config->sn, request);
 			break;
 		}
 		system("chmod 777 " DOWNAGENTDIR);
 		if(check_md5(DOWNAGENTDIR, md5)) {
 			debug(LOG_ERR,"MD5 check failed.");
-			create_http_json(valueSetObj, id, INFORM, AGENTUPGRADESTATUS, "failed", "8", "MD5 check failed", config->gw_mac, request);
+			create_http_json(valueSetObj, id, INFORM, AGENTUPGRADESTATUS, "failed", "8", "MD5 check failed", config->sn, request);
 			break;
 		}
 		system("rm -rf /tmp/EliteAgent");
@@ -681,7 +684,7 @@ static void thread_agentUpgrade(void * args)
 		
 		debug(LOG_INFO, "Upgrade EliteAgent successfully");
 		flag = 1;
-		create_http_json(valueSetObj, id, INFORM, AGENTUPGRADESTATUS, "success", "0", NULL, config->gw_mac, request);
+		create_http_json(valueSetObj, id, INFORM, AGENTUPGRADESTATUS, "success", "0", NULL, config->sn, request);
 		
 	}while(0);
 
@@ -724,20 +727,20 @@ _agentUpgrade(cJSON *root, s_config *config, char *http_packet)
 	cJSON *transaction_id = cJSON_GetObjectItem(root, "transaction_id");
 	if(!transaction_id) {
 		debug(LOG_ERR, "Get transaction_id faild[%s]", cJSON_GetErrorPtr());
-		create_http_json(valueSetObj, "0", RESPONSE, AGENTUPGRADE, "failed", "3", "Missing parameter:{transaction_id}", NULL, http_packet);
+		create_http_json(valueSetObj, "0", RESPONSE, AGENTUPGRADE, "failed", "3", "Missing parameter:{transaction_id}", config->sn, http_packet);
 		return;
 	
 	}		
 	cJSON *valueSet = cJSON_GetObjectItem(root, "valueSet");
 	if(!valueSet) {
 		debug(LOG_ERR, "Get valueSet faild[%s]", cJSON_GetErrorPtr());
-		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "failed", "3", "Missing parameter:{valueSet}", NULL, http_packet);
+		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "failed", "3", "Missing parameter:{valueSet}", config->sn, http_packet);
 		return;
 	}
 
 	if(cJSON_GetObjectItem(valueSet, "file_name") == NULL || cJSON_GetObjectItem(valueSet, "md5") == NULL || !(cJSON_GetObjectItem(valueSet, "file_name")->valuestring) || !(cJSON_GetObjectItem(valueSet, "md5")->valuestring)) {
 		debug(LOG_ERR, "Get file_name or md5 faild[%s]", cJSON_GetErrorPtr());
-		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "failed", "4", "Unsupported value", NULL, http_packet);
+		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "failed", "4", "Unsupported value", config->sn, http_packet);
 		return;
 	}
 
@@ -749,11 +752,11 @@ _agentUpgrade(cJSON *root, s_config *config, char *http_packet)
 	result = pthread_create(&tid_agent, NULL, (void *)thread_agentUpgrade, (void *)ua);
 	if (result != 0) {
 		debug(LOG_ERR, "FATAL: Failed to create a new thread (thread_agentUpgrade");
-		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "failed", "4", "Unsupported value", NULL, http_packet);
+		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "failed", "4", "Unsupported value", config->sn, http_packet);
 		return;
 	}
 	
-	create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "success", "0", NULL, NULL, http_packet);
+	create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, AGENTUPGRADE, "success", "0", NULL, config->sn, http_packet);
 
 }
 
@@ -780,17 +783,17 @@ static void thread_imageUpgrade(void * args)
 		//system("rm -rf /tmp/download/EliteAgent");
 		if(download_file(file_name, DOWNIMAGEDIR)) {
 			debug(LOG_ERR,"Download file failed.");
-			create_http_json(valueSetObj, id, INFORM, IMAGEUPGRADESTATUS, "failed", "6", "Failed to download agent file", config->gw_mac, request);
+			create_http_json(valueSetObj, id, INFORM, IMAGEUPGRADESTATUS, "failed", "6", "Failed to download agent file", config->sn, request);
 			break;
 		}
 		system("chmod 777 " DOWNIMAGEDIR);
 		if(check_md5(DOWNIMAGEDIR, md5)) {
 			debug(LOG_ERR,"MD5 check failed.");
-			create_http_json(valueSetObj, id, INFORM, IMAGEUPGRADESTATUS, "failed", "8", "MD5 check failed", config->gw_mac, request);
+			create_http_json(valueSetObj, id, INFORM, IMAGEUPGRADESTATUS, "failed", "8", "MD5 check failed", config->sn, request);
 			break;
 		}
 		flag = 1;
-		create_http_json(valueSetObj, id, INFORM, IMAGEUPGRADESTATUS, "success", "0", NULL, config->gw_mac, request);
+		create_http_json(valueSetObj, id, INFORM, IMAGEUPGRADESTATUS, "success", "0", NULL, config->sn, request);
 	}while(0);
 	
 	{
@@ -834,20 +837,20 @@ _imageUpgrade(cJSON *root, s_config *config, char *http_packet)
 	cJSON *transaction_id = cJSON_GetObjectItem(root, "transaction_id");
 	if(!transaction_id) {
 		debug(LOG_ERR, "Get transaction_id faild[%s]", cJSON_GetErrorPtr());
-		create_http_json(valueSetObj, "0", RESPONSE, IMAGEUPGRADE, "failed", "3", "Missing parameter:{transaction_id}", NULL, http_packet);
+		create_http_json(valueSetObj, "0", RESPONSE, IMAGEUPGRADE, "failed", "3", "Missing parameter:{transaction_id}", config->sn, http_packet);
 		return;
 	
 	}		
 	cJSON *valueSet = cJSON_GetObjectItem(root, "valueSet");
 	if(!valueSet) {
 		debug(LOG_ERR, "Get valueSet faild[%s]", cJSON_GetErrorPtr());
-		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "failed", "3", "Missing parameter:{valueSet}", NULL, http_packet);
+		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "failed", "3", "Missing parameter:{valueSet}", config->sn, http_packet);
 		return;
 	}
 
 	if(cJSON_GetObjectItem(valueSet, "file_name") == NULL || cJSON_GetObjectItem(valueSet, "md5") == NULL || !(cJSON_GetObjectItem(valueSet, "file_name")->valuestring) || !(cJSON_GetObjectItem(valueSet, "md5")->valuestring)) {
 		debug(LOG_ERR, "Get file_name or md5 faild[%s]", cJSON_GetErrorPtr());
-		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "failed", "4", "Unsupported value", NULL, http_packet);
+		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "failed", "4", "Unsupported value", config->sn, http_packet);
 		return;
 	}
 
@@ -859,13 +862,38 @@ _imageUpgrade(cJSON *root, s_config *config, char *http_packet)
 	result = pthread_create(&tid_image, NULL, (void *)thread_imageUpgrade, (void *)ua);
 	if (result != 0) {
 		debug(LOG_ERR, "FATAL: Failed to create a new thread (thread_imageUpgrade");
-		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "failed", "4", "Unsupported value", NULL, http_packet);
+		create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "failed", "4", "Unsupported value", config->sn, http_packet);
 		return;
 	}
 	
-	create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "success", "0", NULL, NULL, http_packet);
+	create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, IMAGEUPGRADE, "success", "0", NULL, config->sn, http_packet);
 }
 
+
+void
+_reboot(cJSON *root, s_config *config, char *http_packet)
+{
+	cJSON *valueSetObj= cJSON_CreateObject();
+	cJSON *transaction_id = cJSON_GetObjectItem(root, "transaction_id");
+	debug(LOG_DEBUG, "Invalid operation");
+	
+	if(!transaction_id) {
+		debug(LOG_ERR, "Can not find transaction_id parameter: %s", cJSON_GetErrorPtr());
+		create_http_json(valueSetObj, NULL, RESPONSE, REBOOT, "failed", "3", "Missing parameter:{transaction_id}", config->sn, http_packet);
+		return;
+
+	}
+	
+	create_http_json(valueSetObj, transaction_id->valuestring, RESPONSE, REBOOT, "success", "0", NULL, config->sn, http_packet);
+	pthread_mutex_lock(&hMutex);
+	safe_encrypt_http_send(config->httpfd, http_packet, strlen(http_packet), 0);  
+	pthread_mutex_lock(&sMutex);
+	system("reboot");
+	sleep(6);
+	pthread_mutex_unlock(&sMutex);
+	pthread_mutex_unlock(&hMutex);
+	
+}
 
 
 void 

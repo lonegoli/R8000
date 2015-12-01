@@ -70,6 +70,7 @@ typedef enum {
 	oAgentUpgrade,
 	oImageUpgrade,
 	oPushMonitor,
+	oReboot,
 } OpCodes;
 
 
@@ -87,6 +88,7 @@ static const struct {
 	{ "pushMonitor",			oPushMonitor},
 	{ "agentUpgrade",			oAgentUpgrade},
 	{ "imageUpgrade",			oImageUpgrade},
+	{ "reboot",					oReboot},
 	{ NULL,						oBadOption },
 
 };
@@ -485,6 +487,10 @@ heartbeat(s_config *config)
 					case oAgentUpgrade:
 						_agentUpgrade(json, config, request);
 						break;
+
+					case oReboot:
+						_reboot(json, config, request);
+						break;
 						
 					case oBadOption:
 						_badCommand(json, config, request);
@@ -535,6 +541,7 @@ main_loop(void)
 		debug(LOG_DEBUG, "Find the MAC address %s", config->gw_mac);
 	}
 	*/
+	/*
 	if (!config->gw_mac) {
 		char mac[18];
     	debug(LOG_INFO, "Try to find MAC address");
@@ -556,6 +563,33 @@ main_loop(void)
 		}
 		debug(LOG_DEBUG, "Find the WAN MAC address %s", config->gw_wan_mac);
 	}
+	*/
+	
+	while(1) {
+			char hw_mac[18],wan_mac[18];
+			if (!config->gw_mac) {
+				debug(LOG_INFO, "Try to find MAC address");
+				read_mac_addr(hw_mac, sizeof(hw_mac)/sizeof(hw_mac[0]));
+			}
+			if (!config->gw_wan_mac) {
+				debug(LOG_INFO, "Try to find WAN MAC address");
+				read_wan_mac_addr(wan_mac, sizeof(wan_mac)/sizeof(wan_mac[0]));
+			}
+			if(strlen(hw_mac) || strlen(wan_mac)) {
+				if ((config->gw_mac = safe_strdup(hw_mac)) == NULL) {
+					debug(LOG_ERR, "Can not get MAC address, exiting...");
+					exit(1);
+				}
+				debug(LOG_DEBUG, "Find the MAC address %s", config->gw_mac);
+	
+				if ((config->gw_wan_mac = safe_strdup(wan_mac)) == NULL) {
+					debug(LOG_ERR, "Can not get WAN MAC address, exiting...");
+					exit(1);
+				}
+				debug(LOG_DEBUG, "Find the WAN MAC address %s", config->gw_wan_mac);
+				break;
+			}
+		}
 	/*
 	if (!config->sn) {
 		char sn[32];
@@ -569,13 +603,21 @@ main_loop(void)
 	}
 	*/
 	if (!config->sn) {
-		
-		if ((config->sn = safe_strdup(config->gw_mac)) == NULL) {
-			debug(LOG_ERR, "Can not get sn exiting...");
-			exit(1);
+		if(strlen(config->gw_mac)) {
+			if ((config->sn = safe_strdup(config->gw_mac)) == NULL) {
+				debug(LOG_ERR, "Can not get sn exiting...");
+				exit(1);
+			}
+			debug(LOG_DEBUG, "Find the sn %s", config->gw_mac);	
+			
 		}
-		debug(LOG_DEBUG, "Find the sn %s", config->gw_mac);	
-		
+		else {
+			if ((config->sn = safe_strdup(config->gw_wan_mac)) == NULL) {
+				debug(LOG_ERR, "Can not get sn exiting...");
+				exit(1);
+			}
+			debug(LOG_DEBUG, "Find the sn %s", config->gw_wan_mac);	
+		}
 	}
 	
 	config->httpfd = register_to_server(config);

@@ -20,6 +20,7 @@ void _setRadioInfo(cJSON *root, s_config *config, char *http_packet);
 //void test(void);
 void _agentUpgrade(cJSON *root, s_config *config, char *http_packet);
 void _imageUpgrade(cJSON *root, s_config *config, char *http_packet);
+void _reboot(cJSON *root, s_config *config, char *http_packet);
 void _badCommand(cJSON *root, s_config *config, char *http_packet);
 
 #endif /* _CUCI_H_ */
